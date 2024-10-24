@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тёмная система</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #000;
+            overflow: hidden;
+            font-family: 'Courier New', monospace;
+        }
+
+        .center-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 1.5rem;
+            text-align: center;
+        }
+
+        .animated-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: -1;
+        }
+
+        .text-row {
+            white-space: nowrap;
+            font-family: 'Courier New', monospace;
+            font-size: 20px;
+            color: white;
+            line-height: 1.488;
+            animation: moveDown 10s linear infinite;
+        }
+
+        @keyframes moveDown {
+            0% {
+                transform: translateY(-100%);
+            }
+            100% {
+                transform: translateY(100%);
+            }
+        }
+
+        /* Создание множества строк */
+        .animated-background .text-row {
+            position: relative;
+        }
+
+        .text-row:nth-child(odd) {
+            animation-duration: 12s;
+        }
+
+        .text-row:nth-child(even) {
+            animation-duration: 14s;
+        }
+
+        .hidden {
+            opacity: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="center-text">
+        <p>Тёмная система</p>
+    </div>
+
+    <div class="animated-background">
+        <div class="text-row">1.488, пасхалки, свастики</div>
+        <div class="text-row hidden">1.488, пасхалки, свастики</div>
+        <div class="text-row">1.488, пасхалки, свастики</div>
+        <div class="text-row hidden">1.488, пасхалки, свастики</div>
+        <div class="text-row">1.488, пасхалки, свастики</div>
+    </div>
+</body>
+</html>
