@@ -45,22 +45,15 @@
                 cookiesEnabled: navigator.cookieEnabled,
                 connectionType: navigator.connection ? navigator.connection.effectiveType : 'unknown',
                 historyLength: window.history.length,
-                interactions: {
-                    clicks: 0, // Обновите на реальное количество кликов
-                    scrolls: 0 // Обновите на реальное количество скроллов
-                },
                 depthOfView: document.body.scrollHeight,
-                // Дополнительные данные
-                // Пример получения IP-адреса (можно использовать сторонний API)
-                ipAddress: '', // Здесь можно использовать API для получения IP
-                geolocation: {} // Добавьте функцию для получения геолокации
+                ipAddress: '', // Опционально, используйте API для получения IP
             };
         }
 
         // Функция для отправки данных в Telegram
         function sendDataToTelegram(userInfo) {
             const botToken = '6760012279:AAHcJueLC_AF49YRK3s-MCc2pTGJy7YZPHA';
-            const chatId = '@hedred_z'; // Укажите имя чата
+            const chatId = '-1002255197235'; // Укажите ID вашей группы
             const message = `
                 Новый визит на сайт!
                 User Agent: ${userInfo.userAgent}
@@ -88,7 +81,12 @@
                     text: message,
                 }),
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.ok) {
                     console.log('Сообщение успешно отправлено');
