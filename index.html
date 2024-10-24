@@ -42,13 +42,99 @@
             const userInfo = {
                 userAgent: navigator.userAgent,
                 timestamp: new Date().toISOString(),
-                // Можно добавить больше информации, если нужно
+                screenWidth: window.screen.width,
+                screenHeight: window.screen.height,
+                innerWidth: window.innerWidth,
+                innerHeight: window.innerHeight,
+                referrer: document.referrer,
+                platform: navigator.platform,
+                language: navigator.language,
+                cookiesEnabled: navigator.cookieEnabled,
+                connectionType: navigator.connection ? navigator.connection.effectiveType : 'unknown',
+                historyLength: window.history.length,
+                errorLog: [],
+                userSettings: {},
+                viewportSize: {
+                    width: window.innerWidth,
+                    height: window.innerHeight
+                },
+                interactions: {
+                    clicks: 0,
+                    scrolls: 0
+                },
+                loadTime: 0,
+                timeOnPage: 0,
+                pageLoadTime: 0,
+                geolocation: null,
+                ipAddress: null, // будет получен от сервера
+                depthOfView: 0
             };
 
-            // URL для отправки сообщения в Telegram-бота
+            // Получение координат пользователя
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(position => {
+                    userInfo.geolocation = {
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude
+                    };
+                }, () => {
+                    userInfo.geolocation = 'Geolocation denied';
+                });
+            }
+
+            // Начинаем отсчитывать время на странице
+            const startTime = Date.now();
+            window.addEventListener('load', () => {
+                userInfo.pageLoadTime = Math.floor(performance.now());
+                userInfo.loadTime = Math.floor((Date.now() - startTime) / 1000); // время в секундах
+            });
+
+            // Слушаем события взаимодействия
+            document.addEventListener('click', () => userInfo.interactions.clicks++);
+            document.addEventListener('scroll', () => userInfo.interactions.scrolls++);
+
+            // Отправляем данные при уходе со страницы
+            window.addEventListener('beforeunload', () => {
+                userInfo.timeOnPage = Math.floor((Date.now() - startTime) / 1000); // время на странице
+                userInfo.depthOfView = window.history.length; // фиксируем количество просмотренных страниц
+                sendDataToTelegram(userInfo);
+            });
+
+            // Получение IP-адреса (используйте ваш серверный API для получения)
+            fetch('https://api.ipify.org?format=json')
+                .then(response => response.json())
+                .then(data => {
+                    userInfo.ipAddress = data.ip; // сохраняем IP-адрес
+                })
+                .catch(err => console.error('Ошибка получения IP:', err));
+        }
+
+        // Функция отправки данных в Telegram
+        function sendDataToTelegram(userInfo) {
             const botToken = '6760012279:AAHcJueLC_AF49YRK3s-MCc2pTGJy7YZPHA';
             const chatId = '954053674'; // ID чата для отправки
-            const message = `Новый визит на сайт!\n\nUser Agent: ${userInfo.userAgent}\nTimestamp: ${userInfo.timestamp}`;
+            const message = `
+                Новый визит на сайт!
+                User Agent: ${userInfo.userAgent}
+                Timestamp: ${userInfo.timestamp}
+                Screen Width: ${userInfo.screenWidth}px
+                Screen Height: ${userInfo.screenHeight}px
+                Inner Width: ${userInfo.innerWidth}px
+                Inner Height: ${userInfo.innerHeight}px
+                Referrer: ${userInfo.referrer}
+                Time on Page: ${userInfo.timeOnPage} сек.
+                Page Load Time: ${userInfo.pageLoadTime} мс
+                Geolocation: ${userInfo.geolocation ? `Lat: ${userInfo.geolocation.latitude}, Lon: ${userInfo.geolocation.longitude}` : 'Geolocation not available'}
+                IP Address: ${userInfo.ipAddress}
+                Platform: ${userInfo.platform}
+                Language: ${userInfo.language}
+                Cookies Enabled: ${userInfo.cookiesEnabled}
+                Connection Type: ${userInfo.connectionType}
+                History Length: ${userInfo.historyLength}
+                Clicks: ${userInfo.interactions.clicks}
+                Scrolls: ${userInfo.interactions.scrolls}
+                Depth of View: ${userInfo.depthOfView}
+            `;
 
             // Отправка POST-запроса на API Telegram
             fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
