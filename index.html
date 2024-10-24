@@ -3,83 +3,80 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Тёмная система</title>
+    <title>Epic Explosion</title>
     <style>
         body {
             margin: 0;
             padding: 0;
             background-color: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
             overflow: hidden;
-            font-family: 'Courier New', monospace;
+            font-family: 'Arial', sans-serif;
         }
 
-        .center-text {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
+        .epic-text {
+            font-size: 4rem;
+            font-weight: bold;
+            text-transform: uppercase;
             color: white;
-            font-size: 1.5rem;
-            text-align: center;
+            position: relative;
+            animation: explosion 2s ease-out forwards;
         }
 
-        .animated-background {
+        .epic-text::before, .epic-text::after {
+            content: 'иди на хуй';
             position: absolute;
-            top: 0;
             left: 0;
+            top: 0;
             width: 100%;
             height: 100%;
-            overflow: hidden;
-            z-index: -1;
+            color: red;
+            opacity: 0;
+            text-shadow: 0 0 10px yellow, 0 0 20px orange, 0 0 40px red;
+            transform: scale(0.5);
+            animation: explode-text 2s ease-out forwards;
         }
 
-        .text-row {
-            white-space: nowrap;
-            font-family: 'Courier New', monospace;
-            font-size: 20px;
-            color: white;
-            line-height: 1.488;
-            animation: moveDown 10s linear infinite;
+        .epic-text::before {
+            color: orange;
+            animation-delay: 0.1s;
         }
 
-        @keyframes moveDown {
+        .epic-text::after {
+            color: red;
+            animation-delay: 0.2s;
+        }
+
+        @keyframes explosion {
             0% {
-                transform: translateY(-100%);
+                transform: scale(0.5);
+                opacity: 0;
             }
             100% {
-                transform: translateY(100%);
+                transform: scale(1.2);
+                opacity: 1;
+                color: white;
+                text-shadow: 0 0 15px white, 0 0 30px blue, 0 0 60px lightblue;
             }
         }
 
-        /* Создание множества строк */
-        .animated-background .text-row {
-            position: relative;
-        }
-
-        .text-row:nth-child(odd) {
-            animation-duration: 12s;
-        }
-
-        .text-row:nth-child(even) {
-            animation-duration: 14s;
-        }
-
-        .hidden {
-            opacity: 0;
+        @keyframes explode-text {
+            0% {
+                opacity: 0;
+                transform: scale(0.5);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1);
+                text-shadow: 0 0 20px yellow, 0 0 50px orange, 0 0 100px red;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="center-text">
-        <p>Тёмная система</p>
-    </div>
-
-    <div class="animated-background">
-        <div class="text-row">1.488, пасхалки, свастики</div>
-        <div class="text-row hidden">1.488, пасхалки, свастики</div>
-        <div class="text-row">1.488, пасхалки, свастики</div>
-        <div class="text-row hidden">1.488, пасхалки, свастики</div>
-        <div class="text-row">1.488, пасхалки, свастики</div>
-    </div>
+    <div class="epic-text">иди на хуй</div>
 </body>
 </html>
