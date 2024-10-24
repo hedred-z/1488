@@ -3,135 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Epic Scream Effect</title>
+    <title>Centered Text</title>
     <style>
         body {
             margin: 0;
             padding: 0;
             background-color: #000;
-            overflow: hidden;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
+            color: white;
         }
 
-        /* Основной текст */
-        .epic-text {
-            font-size: 2.5rem; /* Уменьшен размер текста */
-            font-weight: bold;
-            color: white; /* Белый цвет текста */
-            position: relative;
-            animation: fadeIn 1.5s ease-in-out forwards;
-            white-space: nowrap; /* Горизонтальное размещение */
-        }
-
-        @keyframes fadeIn {
-            0% {
-                transform: scale(0.7);
-                opacity: 0;
-            }
-            100% {
-                transform: scale(1);
-                opacity: 1;
-            }
-        }
-
-        /* Фоновые элементы - плывущие частицы */
-        .background {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            z-index: -1;
-        }
-
-        .particle {
-            position: absolute;
-            width: 5px;
-            height: 5px;
-            background-color: white;
-            border-radius: 50%;
-            animation: float 10s linear infinite;
-        }
-
-        @keyframes float {
-            0% {
-                transform: translateY(100vh) translateX(0);
-                opacity: 0;
-            }
-            50% {
-                opacity: 1;
-            }
-            100% {
-                transform: translateY(-100vh) translateX(calc(100vw * var(--offset)));
-                opacity: 0;
-            }
-        }
-
-        /* Настройки для разных частиц */
-        .particle:nth-child(odd) {
-            background-color: rgba(255, 255, 255, 0.5);
-            animation-duration: 8s;
-        }
-
-        .particle:nth-child(even) {
-            background-color: rgba(255, 255, 255, 0.7);
-            animation-duration: 12s;
-        }
-
-        .particle:nth-child(3n) {
-            animation-duration: 18s;
-        }
-
-        .particle:nth-child(5n) {
-            background-color: rgba(255, 255, 255, 0.3);
-        }
-
-        /* Эффект мерцания (скример) */
-        .flash {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: white;
-            opacity: 0;
-            animation: flashScreen 3s infinite;
-            z-index: 1;
-        }
-
-        @keyframes flashScreen {
-            0%, 100% {
-                opacity: 0;
-            }
-            50% {
-                opacity: 0.8;
-            }
+        .centered-text {
+            font-size: 4rem; /* Размер текста */
+            font-weight: bold; /* Жирный шрифт */
+            text-transform: uppercase; /* Капсом */
+            font-family: Arial, sans-serif; /* Красивый и простой шрифт */
         }
     </style>
 </head>
 <body>
-    <!-- Основной текст -->
-    <div class="epic-text">иди на хуй</div>
-
-    <!-- Фоновые элементы с частицами -->
-    <div class="background">
-        <div class="particle" style="--offset: 0.1;"></div>
-        <div class="particle" style="--offset: 0.2;"></div>
-        <div class="particle" style="--offset: 0.3;"></div>
-        <div class="particle" style="--offset: 0.4;"></div>
-        <div class="particle" style="--offset: 0.5;"></div>
-        <div class="particle" style="--offset: 0.6;"></div>
-        <div class="particle" style="--offset: 0.7;"></div>
-        <div class="particle" style="--offset: 0.8;"></div>
-        <div class="particle" style="--offset: 0.9;"></div>
-        <div class="particle" style="--offset: 1;"></div>
-    </div>
-
-    <!-- Эффект мерцания (скример) -->
-    <div class="flash"></div>
+    <div class="centered-text">ИДИ НА ХУЙ</div>
 </body>
 </html>
