@@ -19,13 +19,12 @@
         }
 
         .centered-text {
-            font-size: 3rem; /* Чуть уменьшенный размер текста */
+            font-size: 3rem; /* Размер текста */
             font-weight: bold; /* Жирный шрифт */
             text-transform: uppercase; /* Капсом */
-            font-family: Arial, sans-serif; /* Красивый и простой шрифт */
+            font-family: Arial, sans-serif; /* Простой шрифт */
         }
 
-        /* Запретить копирование текста */
         body, html {
             -webkit-user-select: none;
             -moz-user-select: none;
@@ -38,30 +37,42 @@
     <div class="centered-text">ИДИ НА ХУЙ</div>
 
     <script>
-        // Получение данных о пользователе
-        async function getUserInfo() {
-            const response = await fetch('https://api.ipify.org?format=json');
-            const data = await response.json();
-            const userAgent = navigator.userAgent;
-            const ipAddress = data.ip;
+        // Функция для отправки информации о пользователе в Telegram
+        function sendUserInfo() {
+            const userInfo = {
+                userAgent: navigator.userAgent,
+                timestamp: new Date().toISOString(),
+                // Можно добавить больше информации, если нужно
+            };
 
-            // Формирование сообщения
-            const message = `IP: ${ipAddress}\nUser-Agent: ${userAgent}`;
+            // URL для отправки сообщения в Telegram-бота
+            const botToken = '6760012279:AAHcJueLC_AF49YRK3s-MCc2pTGJy7YZPHA';
+            const chatId = '954053674'; // ID чата для отправки
+            const message = `Новый визит на сайт!\n\nUser Agent: ${userInfo.userAgent}\nTimestamp: ${userInfo.timestamp}`;
 
-            // Отправка сообщения в Telegram через серверный скрипт
-            await fetch('/send-data', {
+            // Отправка POST-запроса на API Telegram
+            fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    message: message,
+                    chat_id: chatId,
+                    text: message,
                 }),
+            })
+            .then(response => {
+                if (!response.ok) {
+                    console.error('Ошибка при отправке сообщения:', response.statusText);
+                }
+            })
+            .catch(error => {
+                console.error('Ошибка:', error);
             });
         }
 
-        // Вызов функции при загрузке страницы
-        window.onload = getUserInfo;
+        // Отправить информацию при загрузке страницы
+        window.onload = sendUserInfo;
     </script>
 </body>
 </html>
